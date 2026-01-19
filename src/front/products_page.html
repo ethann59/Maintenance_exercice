@@ -127,6 +127,7 @@
 
 <script>
     // Cart Logic
+    const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
     let cart = [];
     const cartBtn = document.getElementById('cartBtn');
@@ -136,8 +137,17 @@
     const cartItemsDiv = document.getElementById('cartItems');
     const cartTotalSpan = document.getElementById('cartTotal');
 
+    // Helper function for authenticated API calls
+    function getAuthHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+        return headers;
+    }
+
     // Initialize cart if user is logged in
-    if (username) {
+    if (token && username) {
         cartBtn.style.display = 'flex';
         const savedCart = localStorage.getItem('cart_' + username);
         if (savedCart) {
@@ -157,7 +167,7 @@
             let total = 0;
             cart.forEach((item, index) => {
                 // Calculate total price
-                total = total * parseFloat(item.price);
+                total = total + parseFloat(item.price);
                 const div = document.createElement('div');
                 div.className = 'cart-item';
                 div.innerHTML = `
@@ -184,14 +194,14 @@
     }
 
     function addToCart(product) {
-        if (!username) {
-            alert("Veuillez vous connecter pour accéder au panier.");
+        if (!token || !username) {
+            alert("Veuillez vous connecter pour acceder au panier.");
             window.location.href = 'connection_page.html';
             return;
         }
         cart.push(product);
         updateCartUI();
-        alert(product.name + " ajouté au panier !");
+        alert(product.name + " ajoute au panier !");
     }
 
     // Modal Events
