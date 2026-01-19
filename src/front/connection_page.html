@@ -116,9 +116,13 @@
             const data = await response.json();
 
             if (response.ok) {
-                // If successful, store username and redirect to homepage
+                // If successful, store username and user ID, then redirect to homepage
                 const username = (data.user && data.user.username) ? data.user.username : usernameInput;
+                const userId = data.user && data.user.id ? data.user.id : null;
                 localStorage.setItem('username', username);
+                if (userId) {
+                    localStorage.setItem('userId', userId);
+                }
                 window.location.href = 'index.html';
             } else {
                 errorMsg.textContent = data.message || "Erreur de connexion";

@@ -517,12 +517,32 @@
     // Get cart from localStorage
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const username = localStorage.getItem('username');
-    const userId = localStorage.getItem('userId');
+    let userId = localStorage.getItem('userId');
 
     // Redirect if not logged in
-    if (!username || !userId) {
+    if (!username) {
         alert('Veuillez vous connecter pour effectuer un achat.');
         window.location.href = 'connection_page.html';
+    }
+    
+    // If userId is not stored, fetch it from the API
+    if (!userId) {
+        (async function() {
+            try {
+                const response = await fetch('/api/users/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    userId = data.user.id;
+                    localStorage.setItem('userId', userId);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération de l\'ID utilisateur:', error);
+            }
+        })();
     }
 
     // Delivery costs mapping
