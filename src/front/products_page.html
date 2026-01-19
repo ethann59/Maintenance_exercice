@@ -95,6 +95,26 @@
         .cart-item:last-child { border-bottom: none; }
         .cart-total { margin-top: 20px; text-align: right; font-size: 1.2rem; font-weight: 700; color: #111827; }
         .remove-item { color: #ef4444; cursor: pointer; margin-left: 10px; font-weight: bold; }
+        
+        .checkout-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s;
+        }
+        .checkout-btn:hover { transform: translateY(-2px); }
+        .checkout-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -122,6 +142,7 @@
         <h2 style="margin-top: 0; color: #111827;">Mon Panier</h2>
         <div id="cartItems">Votre panier est vide.</div>
         <div class="cart-total">Total: <span id="cartTotal">0.00</span> €</div>
+        <button id="checkoutBtn" class="checkout-btn">Procéder au paiement</button>
     </div>
 </div>
 
@@ -139,7 +160,7 @@
     // Initialize cart if user is logged in
     if (username) {
         cartBtn.style.display = 'flex';
-        const savedCart = localStorage.getItem('cart_' + username);
+        const savedCart = localStorage.getItem('cart');
         if (savedCart) {
             try { cart = JSON.parse(savedCart); } catch(e) { cart = []; }
         }
@@ -147,11 +168,12 @@
     }
 
     function updateCartUI() {
-        cartCountSpan.textContent = cart.length;
+        cartCountSpan.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
         
         if (cart.length === 0) {
             cartItemsDiv.innerHTML = '<p style="color: #6b7280; text-align: center;">Votre panier est vide.</p>';
             cartTotalSpan.textContent = '0.00';
+            document.getElementById('checkoutBtn').disabled = true;
         } else {
             cartItemsDiv.innerHTML = '';
             let total = 0;
@@ -161,21 +183,20 @@
                 const div = document.createElement('div');
                 div.className = 'cart-item';
                 div.innerHTML = `
-                    <span>${item.name}</span>
+                    <span>${item.name} x${item.quantity}</span>
                     <span>
-                        ${item.price} €
+                        ${(item.price * item.quantity).toFixed(2)} €
                         <span class="remove-item" onclick="removeFromCart(${index})">&times;</span>
                     </span>
                 `;
                 cartItemsDiv.appendChild(div);
             });
             cartTotalSpan.textContent = total.toFixed(2);
+            document.getElementById('checkoutBtn').disabled = false;
         }
         
         // Save cart to local storage
-        if (username) {
-            localStorage.setItem('cart_' + username, JSON.stringify(cart));
-        }
+        localStorage.setItem('cart', JSON.stringify(cart));
     }
 
     window.removeFromCart = function(index) {
@@ -189,10 +210,25 @@
             window.location.href = 'connection_page.html';
             return;
         }
-        cart.push(product);
+        
+        // Check if product already exists in cart
+        const existingIndex = cart.findIndex(item => item.id === product.id);
+        if (existingIndex !== -1) {
+            cart[existingIndex].quantity += 1;
+        } else {
+            cart.push({ ...product, quantity: 1 });
+        }
+        
         updateCartUI();
         alert(product.name + " ajouté au panier !");
     }
+
+    // Checkout button
+    document.getElementById('checkoutBtn').addEventListener('click', function() {
+        if (cart.length > 0) {
+            window.location.href = 'checkout_page.html';
+        }
+    });
 
     // Modal Events
     if (cartBtn) cartBtn.onclick = () => cartModal.style.display = "block";
