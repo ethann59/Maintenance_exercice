@@ -88,23 +88,46 @@
 </main>
 
 <script>
-    // Retrieve username from local storage
+    const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
     const loginLink = document.getElementById('loginLink');
     const logoutBtn = document.getElementById('logoutBtn');
     const welcomeMsg = document.getElementById('welcomeMsg');
 
-    // If user is logged in, update UI
-    if (username) {
-        loginLink.style.display = 'none';
-        logoutBtn.style.display = 'block';
-        welcomeMsg.textContent = `Heureux de vous revoir, ${username}.`;
-        
-        // Handle logout functionality
-        logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('username');
-            window.location.reload();
+    // Function to clear auth data
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userId');
+        window.location.reload();
+    }
+
+    // Check if user is logged in with valid token
+    if (token && username) {
+        // Verify token is still valid
+        fetch('/api/users/verify', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(res => {
+            if (res.ok) {
+                // Token valid, show logged in state
+                loginLink.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                welcomeMsg.textContent = `Heureux de vous revoir, ${username}.`;
+            } else {
+                // Token invalid, clear and show logged out state
+                logout();
+            }
+        })
+        .catch(() => {
+            // On error, keep showing logged in state (offline support)
+            loginLink.style.display = 'none';
+            logoutBtn.style.display = 'block';
+            welcomeMsg.textContent = `Heureux de vous revoir, ${username}.`;
         });
+
+        // Handle logout
+        logoutBtn.addEventListener('click', logout);
     }
 </script>
 

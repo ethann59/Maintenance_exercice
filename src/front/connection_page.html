@@ -10,12 +10,13 @@
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
+            padding: 20px;
         }
 
         .login-card {
@@ -36,7 +37,7 @@
 
         .form-group { margin-bottom: 20px; text-align: left; }
         label { display: block; margin-bottom: 8px; font-weight: 500; color: #555; }
-        
+
         input {
             width: 100%;
             padding: 12px 15px;
@@ -64,9 +65,11 @@
         }
 
         button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .error { color: #e74c3c; margin-top: 15px; font-size: 0.9rem; min-height: 20px; }
-        
+        .success { color: #27ae60; margin-top: 15px; font-size: 0.9rem; min-height: 20px; }
+
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -75,59 +78,171 @@
             font-size: 0.9rem;
         }
         .back-link:hover { text-decoration: underline; }
+
+        .toggle-mode {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .toggle-mode a {
+            color: #764ba2;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .toggle-mode a:hover { text-decoration: underline; }
+
+        .password-requirements {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
 
 <div class="login-card">
-    <h2>Bon retour !</h2>
-    <p class="subtitle">Connectez-vous pour accéder à votre espace.</p>
-    
-    <form id="loginForm">
+    <h2 id="formTitle">Bon retour !</h2>
+    <p class="subtitle" id="formSubtitle">Connectez-vous pour acceder a votre espace.</p>
+
+    <form id="authForm">
         <div class="form-group">
             <label for="username">Nom d'utilisateur</label>
-            <input type="text" id="username" name="username" placeholder="ex: alice" required>
+            <input type="text" id="username" name="username" placeholder="ex: alice" required autocomplete="username">
         </div>
-        <button type="submit" id="connect">Se connecter</button>
-        <button type="submit" id="register">Enregistrer un utilisateur</button>
+        <div class="form-group">
+            <label for="password">Mot de passe</label>
+            <input type="password" id="password" name="password" placeholder="Votre mot de passe" required autocomplete="current-password">
+            <p class="password-requirements" id="passwordHint" style="display: none;">Minimum 6 caracteres</p>
+        </div>
+        <button type="submit" id="submitBtn">Se connecter</button>
         <p class="error" id="errorMsg"></p>
+        <p class="success" id="successMsg"></p>
     </form>
-    
-    <a href="index.html" class="back-link">← Retour à l'accueil</a>
+
+    <p class="toggle-mode">
+        <span id="toggleText">Pas encore de compte ?</span>
+        <a id="toggleLink" onclick="toggleMode()">Creer un compte</a>
+    </p>
+
+    <a href="index.html" class="back-link">&#8592; Retour a l'accueil</a>
 </div>
 
 <script>
-    // Script to handle login and registration logic
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const usernameInput = document.getElementById('username').value;
+    let isLoginMode = true;
+
+    function toggleMode() {
+        isLoginMode = !isLoginMode;
+        const title = document.getElementById('formTitle');
+        const subtitle = document.getElementById('formSubtitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const toggleText = document.getElementById('toggleText');
+        const toggleLink = document.getElementById('toggleLink');
+        const passwordHint = document.getElementById('passwordHint');
         const errorMsg = document.getElementById('errorMsg');
-        // Determine if the action is registration or login based on the button clicked
-        const isRegister = e.submitter.id === 'register';
-        const endpoint = isRegister ? '/api/users/register' : '/api/users/login';
-        
+        const successMsg = document.getElementById('successMsg');
+
+        errorMsg.textContent = '';
+        successMsg.textContent = '';
+
+        if (isLoginMode) {
+            title.textContent = 'Bon retour !';
+            subtitle.textContent = 'Connectez-vous pour acceder a votre espace.';
+            submitBtn.textContent = 'Se connecter';
+            toggleText.textContent = 'Pas encore de compte ?';
+            toggleLink.textContent = 'Creer un compte';
+            passwordHint.style.display = 'none';
+        } else {
+            title.textContent = 'Creer un compte';
+            subtitle.textContent = 'Rejoignez-nous pour profiter de nos offres.';
+            submitBtn.textContent = "S'inscrire";
+            toggleText.textContent = 'Deja un compte ?';
+            toggleLink.textContent = 'Se connecter';
+            passwordHint.style.display = 'block';
+        }
+    }
+
+    document.getElementById('authForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const submitBtn = document.getElementById('submitBtn');
+
+        errorMsg.textContent = '';
+        successMsg.textContent = '';
+
+        // Client-side validation
+        if (!username || !password) {
+            errorMsg.textContent = 'Veuillez remplir tous les champs.';
+            return;
+        }
+
+        if (!isLoginMode && password.length < 6) {
+            errorMsg.textContent = 'Le mot de passe doit contenir au moins 6 caracteres.';
+            return;
+        }
+
+        const endpoint = isLoginMode ? '/api/users/login' : '/api/users/register';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Chargement...';
+
         try {
-            // Send request to the API
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: usernameInput })
+                body: JSON.stringify({ username, password })
             });
+
             const data = await response.json();
 
             if (response.ok) {
-                // If successful, store username and redirect to homepage
-                const username = (data.user && data.user.username) ? data.user.username : usernameInput;
-                localStorage.setItem('username', username);
-                window.location.href = 'index.html';
+                // Store token and user info
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', data.user.username);
+                localStorage.setItem('userId', data.user.id);
+
+                successMsg.textContent = isLoginMode ? 'Connexion reussie !' : 'Compte cree avec succes !';
+
+                // Redirect after short delay
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 500);
             } else {
-                errorMsg.textContent = data.message || "Erreur de connexion";
+                errorMsg.textContent = data.message || 'Une erreur est survenue.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = isLoginMode ? 'Se connecter' : "S'inscrire";
             }
         } catch (error) {
             console.error('Erreur:', error);
-            errorMsg.textContent = "Erreur de connexion au serveur.";
+            errorMsg.textContent = 'Erreur de connexion au serveur.';
+            submitBtn.disabled = false;
+            submitBtn.textContent = isLoginMode ? 'Se connecter' : "S'inscrire";
         }
     });
+
+    // Check if already logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+        // Verify token is still valid
+        fetch('/api/users/verify', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(res => {
+            if (res.ok) {
+                window.location.href = 'index.html';
+            } else {
+                // Token invalid, clear storage
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userId');
+            }
+        })
+        .catch(() => {
+            // Error verifying, keep user on login page
+        });
+    }
 </script>
 
 </body>

@@ -13,10 +13,11 @@ services:
     depends_on:
       - mysql
     environment:
-      DB_HOST: mysql
-      DB_USER: app_user
-      DB_PASSWORD: app_password
-      DB_NAME: app_database
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
     networks:
       - internal
 
@@ -25,10 +26,10 @@ services:
     container_name: mysql_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: app_database
-      MYSQL_USER: app_user
-      MYSQL_PASSWORD: app_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./bdd:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
