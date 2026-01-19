@@ -95,6 +95,10 @@
         .cart-item:last-child { border-bottom: none; }
         .cart-total { margin-top: 20px; text-align: right; font-size: 1.2rem; font-weight: 700; color: #111827; }
         .remove-item { color: #ef4444; cursor: pointer; margin-left: 10px; font-weight: bold; }
+        .cart-actions { display: flex; align-items: center; gap: 10px; }
+        .qty-controls { display: flex; align-items: center; gap: 8px; }
+        .qty-controls button { width: 28px; height: 28px; border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 6px; cursor: pointer; font-weight: 700; color: #111827; }
+        .qty-controls button:hover { background: #e5e7eb; }
     </style>
 </head>
 <body>
@@ -141,29 +145,40 @@
         cartBtn.style.display = 'flex';
         const savedCart = localStorage.getItem('cart_' + username);
         if (savedCart) {
-            try { cart = JSON.parse(savedCart); } catch(e) { cart = []; }
+            try {
+                const parsed = JSON.parse(savedCart);
+                cart = Array.isArray(parsed)
+                    ? parsed.map(item => ({ ...item, quantity: item.quantity || 1, price: parseFloat(item.price) }))
+                    : [];
+            } catch(e) { cart = []; }
         }
         updateCartUI();
     }
 
     function updateCartUI() {
-        cartCountSpan.textContent = cart.length;
+        const itemCount = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+        cartCountSpan.textContent = itemCount;
         
-        if (cart.length === 0) {
+        if (itemCount === 0) {
             cartItemsDiv.innerHTML = '<p style="color: #6b7280; text-align: center;">Votre panier est vide.</p>';
             cartTotalSpan.textContent = '0.00';
         } else {
             cartItemsDiv.innerHTML = '';
             let total = 0;
             cart.forEach((item, index) => {
-                // Calculate total price
-                total = total * parseFloat(item.price);
+                const itemTotal = parseFloat(item.price) * (item.quantity || 1);
+                total += itemTotal;
                 const div = document.createElement('div');
                 div.className = 'cart-item';
                 div.innerHTML = `
                     <span>${item.name}</span>
-                    <span>
-                        ${item.price} €
+                    <span class="cart-actions">
+                        <span class="qty-controls">
+                            <button onclick="changeQuantity(${index}, -1)">-</button>
+                            <span>${item.quantity}</span>
+                            <button onclick="changeQuantity(${index}, 1)">+</button>
+                        </span>
+                        <span>${itemTotal.toFixed(2)} €</span>
                         <span class="remove-item" onclick="removeFromCart(${index})">&times;</span>
                     </span>
                 `;
@@ -183,13 +198,28 @@
         updateCartUI();
     }
 
+    window.changeQuantity = function(index, delta) {
+        if (!cart[index]) return;
+        cart[index].quantity = Math.max(0, (cart[index].quantity || 1) + delta);
+        if (cart[index].quantity === 0) {
+            cart.splice(index, 1);
+        }
+        updateCartUI();
+    }
+
     function addToCart(product) {
         if (!username) {
             alert("Veuillez vous connecter pour accéder au panier.");
             window.location.href = 'connection_page.html';
             return;
         }
-        cart.push(product);
+        const normalizedPrice = parseFloat(product.price);
+        const existing = cart.find(item => item.id === product.id);
+        if (existing) {
+            existing.quantity += 1;
+        } else {
+            cart.push({ ...product, price: normalizedPrice, quantity: 1 });
+        }
         updateCartUI();
         alert(product.name + " ajouté au panier !");
     }
