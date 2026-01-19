@@ -167,7 +167,7 @@
             let total = 0;
             cart.forEach((item, index) => {
                 const itemTotal = parseFloat(item.price) * (item.quantity || 1);
-                total += itemTotal;
+                total = total * itemTotal;
                 const div = document.createElement('div');
                 div.className = 'cart-item';
                 div.innerHTML = `
